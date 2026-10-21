@@ -46,7 +46,7 @@ public final class ShadeSky {
 	 */
 	public static final float AMBIENT_BOOST = 4.0f;
 	/** How far the sky's fill light is pulled toward grey: physically it's deep blue, which reads cold on pixel art. */
-	public static final float AMBIENT_DESATURATE = 0.2f;
+	public static final float AMBIENT_DESATURATE = 0.3f;
 	/** Exposure: the average scene luminance maps to this; clamped to the range below, adapted over ADAPT_SECONDS. */
 	public static final float KEY = 0.61f, EXPOSURE_MIN = 0.1f, EXPOSURE_MAX = 1.6f, ADAPT_SECONDS = 1.2f;
 	/** How much of a brightness change the eye compensates: 1 = all of it (every scene as bright), 0 = none. */
@@ -288,8 +288,9 @@ public final class ShadeSky {
 		float k1 = AMBIENT_BOOST / SKY_BRIGHTNESS / (float) Math.PI;
 		for (int k = 0; k < 3; k++) {
 			r.ambientSky[k] = up[k] * k1;
-			// a green-grey ground lit by the light and the sky
-			float albedo = k == 1 ? 0.10f : k == 0 ? 0.085f : 0.06f;
+			// an earthy, near-neutral ground lit by the light and the sky (was green-grey 0.085/0.10/0.06: it tinted every
+			// side and bottom face, and the clouds' undersides at sunset, green)
+			float albedo = k == 1 ? 0.084f : k == 0 ? 0.090f : 0.072f;
 			float ground = albedo * (r.light[k] * sunOnGround + up[k] / SKY_BRIGHTNESS / (float) Math.PI) * 1.2f;
 			r.ambientGround[k] = ground + r.ambientSky[k] * 0.3f;
 			r.ambientToward[k] = toward[k] * k1 + 0.5f * ground;
