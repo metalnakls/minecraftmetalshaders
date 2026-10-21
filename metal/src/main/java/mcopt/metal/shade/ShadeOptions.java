@@ -191,7 +191,7 @@ public final class ShadeOptions {
 			pctOf("mcopt.shade.hdrSceneBrightness", "Brillo de la escena HDR", "HDR scene brightness", "Exposición de la escena completa HDR.",
 				"Scene exposure in Full scene mode; does not change UI brightness.", 50, 200, () -> 100, 0.01f),
 			pctOf("mcopt.shade.hdrUiBrightness", "Brillo de interfaz HDR", "HDR UI brightness", "Brillo de interfaz y mano en HDR.",
-				"HUD and hand brightness in Full scene mode.", 25, 200, () -> 100, 0.01f),
+				"HUD and hand brightness in Full scene mode.", 25, 200, () -> 100, 1f),
 			num("mcopt.shade.xdrPeak", "Brillo máximo HDR", "HDR peak", "Hasta cuántas veces el blanco pueden brillar las luces.", "How many times brighter than white lights may get.",
 				1, 16, () -> 4, 1, "x"));
 
