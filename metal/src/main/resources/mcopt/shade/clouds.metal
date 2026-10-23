@@ -386,9 +386,10 @@ static float cloudDensity(float3 p, float y, int q, constant CloudParams &c, tex
 	// uneven light through the body), not only its edges
 	d *= 0.6 + 0.8 * float(n.r);
 	d = saturate(d);
-	// edges sharpen with height: crisp cauliflower tops, softer ragged bases
-	d = 1.0 - pow(1.0 - d, mix(3.0, 7.0, h));
-	return d * (0.5 + 0.5 * smoothstep(0.0, 0.2, h));
+	// Keep thin wisps translucent instead of expanding them into an opaque outline.
+	float feather = smoothstep(0.0, 0.12, d);
+	d = 1.0 - pow(1.0 - d, mix(2.0, 4.0, h));
+	return feather * d * (0.5 + 0.5 * smoothstep(0.0, 0.2, h));
 }
 
 // ---- M3.3 (CLOUD_MODE_BATCH): the same densities with every texture fetch of a sample issued before any of them is used ----
@@ -422,8 +423,9 @@ static inline float cloudDensityMath(half4 w, half4 n, half4 m, float h, int q, 
 	}
 	d *= 0.6 + 0.8 * float(n.r);
 	d = saturate(d);
-	d = 1.0 - pow(1.0 - d, mix(3.0, 7.0, h));
-	return d * (0.5 + 0.5 * smoothstep(0.0, 0.2, h));
+	float feather = smoothstep(0.0, 0.12, d);
+	d = 1.0 - pow(1.0 - d, mix(2.0, 4.0, h));
+	return feather * d * (0.5 + 0.5 * smoothstep(0.0, 0.2, h));
 }
 
 static inline half4 cloudWeatherAt(float2 xz, float h, constant CloudParams &c, texture2d<half> weather) {

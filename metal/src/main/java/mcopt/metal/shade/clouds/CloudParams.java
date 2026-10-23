@@ -33,8 +33,8 @@ public final class CloudParams {
 	/** Art knobs: multiple-scattering octave weight and extinction factors, sky-light extinction (diffuse) factor. */
 	static final float OCTAVE_WEIGHT = CloudConfig.floatProperty("mcopt.shade.clouds.octaveWeight", 0.68f),
 		OCTAVE_EXTINCTION = CloudConfig.floatProperty("mcopt.shade.clouds.octaveExtinction", 0.48f),
-		SKY_EXTINCTION = CloudConfig.floatProperty("mcopt.shade.clouds.skyExtinction", 0.2f),
-		SUNSET_FILL = CloudConfig.floatProperty("mcopt.shade.clouds.sunsetFill", 0.4f),
+		SKY_EXTINCTION = CloudConfig.floatProperty("mcopt.shade.clouds.skyExtinction", 0.12f),
+		SUNSET_FILL = CloudConfig.floatProperty("mcopt.shade.clouds.sunsetFill", 0.65f),
 		AP_SUNSET = CloudConfig.floatProperty("mcopt.shade.clouds.apSunset", 1.5f),
 		LIGHT_STEP = CloudConfig.floatProperty("mcopt.shade.clouds.lightStep", 4f),
 		OD_STEP = CloudConfig.floatProperty("mcopt.shade.clouds.odStep", 2.5f),
@@ -141,7 +141,7 @@ public final class CloudParams {
 		put4(b, 240, this.lightDir[0], this.lightDir[1], this.lightDir[2], this.dev);
 		float[] as = f.sky.ambientSky, ag = f.sky.ambientGround;
 		float albedo = 0.96f - 0.3f * storm;
-		// a low sun: less of the sky's grey-blue fill, so the sunlit sides stay saturated gold against darker bases
+		// Retain enough diffuse sky fill at low sun to keep the undersides readable beneath the golden rims.
 		// (1.1: mcopt.shade.clouds.sunsetFill read every frame, SUNSET_FILL its default)
 		float sunsetFill = Live.f("mcopt.shade.clouds.sunsetFill", SUNSET_FILL);
 		float fill = this.sunLit ? sunsetFill + (1f - sunsetFill) * smoothstep(0.04f, 0.35f, sunY) : 1f;
