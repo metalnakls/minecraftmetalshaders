@@ -60,8 +60,8 @@ public final class ShadeLook {
 		{5, 1.22f, 1.00f, 1.02f, 0.95f, 1.00f, 1.18f, 1.38f, 0.090f, 0.85f, 4.0f, 42},
 		{12, 1.12f, 1.00f, 1.01f, 0.97f, 0.99f, 1.14f, 1.40f, 0.085f, 0.55f, 2.5f, 32},
 		{25, 1.04f, 1.00f, 1.00f, 0.99f, 1.01f, 1.02f, 1.40f, 0.080f, 0.32f, 1.2f, 15},
-		{45, 1.00f, 1.00f, 0.98f, 1.00f, 1.03f, 1.04f, 1.40f, 0.075f, 0.22f, 0.6f, 6},
-		{65, 1.00f, 1.00f, 0.98f, 1.00f, 1.03f, 1.05f, 1.42f, 0.075f, 0.18f, 0.5f, 4},
+		{45, 1.00f, 1.00f, 1.00f, 1.00f, 1.00f, 1.04f, 1.40f, 0.075f, 0.22f, 0.6f, 6},
+		{65, 1.00f, 1.00f, 1.00f, 1.00f, 1.00f, 1.05f, 1.42f, 0.075f, 0.18f, 0.5f, 4},
 	};
 	// golden-hour sky gain (sky LUT): elevation, horizon rgb, zenith rgb; linear between rows, 1 outside
 	private static final float[][] SKY_GOLD = {
@@ -96,7 +96,7 @@ public final class ShadeLook {
 
 	// ---- tuning knobs ----------------------------------------------------------------------------------------------------
 	/** Tone curve anchors: mid-grey in -> out, white point (scene) -> peak (display). */
-	static final float MID_IN = 0.18f, MID_OUT = 0.20f, WHITE = 12f, SHOULDER = 0.92f;
+	static final float MID_IN = 0.18f, MID_OUT = 0.20f, WHITE = 12f, SHOULDER = 0.97f;
 	/** Auto-exposure metering key (the metered mean luminance maps to this, pre-exposed) and bounds around the reference. */
 	static final float METER_KEY = 0.30f, EV_DOWN = 1.75f, EV_UP = 1.75f, EV_UP_NIGHT = 0.6f, TAU_UP = 0.6f, TAU_DOWN = 2.2f;
 	/** Haze (Rayleigh-like) extinction at its base, per block, and scale height; base height above sea level. */

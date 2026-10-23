@@ -47,6 +47,8 @@ public final class ShadeSky {
 	public static final float AMBIENT_BOOST = 4.0f;
 	/** How far the sky's fill light is pulled toward grey: physically it's deep blue, which reads cold on pixel art. */
 	public static final float AMBIENT_DESATURATE = 0.3f;
+	/** Neutral daylight fill; the sky pixels keep their atmospheric colour. */
+	public static final float DAY_AMBIENT_DESATURATE = 0.8f;
 	/** Exposure: the average scene luminance maps to this; clamped to the range below, adapted over ADAPT_SECONDS. */
 	public static final float KEY = 0.61f, EXPOSURE_MIN = 0.1f, EXPOSURE_MAX = 1.6f, ADAPT_SECONDS = 1.2f;
 	/** How much of a brightness change the eye compensates: 1 = all of it (every scene as bright), 0 = none. */
@@ -296,10 +298,14 @@ public final class ShadeSky {
 			r.ambientToward[k] = toward[k] * k1 + 0.5f * ground;
 			r.ambientAway[k] = away[k] * k1 + 0.5f * ground;
 		}
-		desaturate(r.ambientSky, AMBIENT_DESATURATE);
-		desaturate(r.ambientToward, AMBIENT_DESATURATE);
-		desaturate(r.ambientAway, AMBIENT_DESATURATE);
-		desaturate(r.ambientGround, AMBIENT_DESATURATE);
+		// Keep dusk and moonlight coloured; remove the blue daylight illuminant from surface fill.
+		float day = r.sunLight ? Math.clamp((r.lightDir[1] - 0.2f) / 0.5f, 0f, 1f) : 0f;
+		day *= day * (3f - 2f * day);
+		float fillNeutrality = AMBIENT_DESATURATE + (DAY_AMBIENT_DESATURATE - AMBIENT_DESATURATE) * day;
+		desaturate(r.ambientSky, fillNeutrality);
+		desaturate(r.ambientToward, fillNeutrality);
+		desaturate(r.ambientAway, fillNeutrality);
+		desaturate(r.ambientGround, fillNeutrality);
 		radiance(s, 0f, 1f, 0f, r.zenith);
 		for (int i = 0; i < 8; i++) {
 			float x = i / 3.5f - 1f;
