@@ -386,9 +386,8 @@ static float cloudDensity(float3 p, float y, int q, constant CloudParams &c, tex
 	// uneven light through the body), not only its edges
 	d *= 0.6 + 0.8 * float(n.r);
 	d = saturate(d);
-	// Keep thin wisps translucent instead of expanding them into an opaque outline.
-	float feather = smoothstep(0.0, 0.12, d);
-	d = 1.0 - pow(1.0 - d, mix(2.0, 4.0, h));
+	// A broad low-density fringe lets the sky remain visible through the cloud boundary.
+	float feather = smoothstep(0.0, 0.5, d);
 	return feather * d * (0.5 + 0.5 * smoothstep(0.0, 0.2, h));
 }
 
@@ -423,8 +422,7 @@ static inline float cloudDensityMath(half4 w, half4 n, half4 m, float h, int q, 
 	}
 	d *= 0.6 + 0.8 * float(n.r);
 	d = saturate(d);
-	float feather = smoothstep(0.0, 0.12, d);
-	d = 1.0 - pow(1.0 - d, mix(2.0, 4.0, h));
+	float feather = smoothstep(0.0, 0.5, d);
 	return feather * d * (0.5 + 0.5 * smoothstep(0.0, 0.2, h));
 }
 
@@ -543,7 +541,10 @@ static inline float3 cloudSampleLight(float tauL, float dUp, float d, float st, 
 	float powder = 1.0 - pw * exp(-st * 28.0);
 	ms *= mix(powder, 1.0, saturate(mu * 1.5));
 	float3 direct = c.light.rgb * ms;
-	float3 amb = (c.ambTop.rgb * exp(-tauUp) * (0.55 + 0.45 * h) + c.ambBottom.rgb * exp(-tauDown)) * c.ambBottom.w;
+	// Diffuse multiple scattering keeps the interior lit even when the direct sun is occluded.
+	float skyFill = 0.5 + 0.5 * exp(-tauUp);
+	float groundFill = 0.35 + 0.65 * exp(-tauDown);
+	float3 amb = (c.ambTop.rgb * skyFill * (0.55 + 0.45 * h) + c.ambBottom.rgb * groundFill) * c.ambBottom.w;
 	return direct + amb;
 }
 
@@ -707,7 +708,7 @@ static CloudResult cloudMarch(float3 dir, int steps, int lsteps, int q, float ji
 	// a sample still waiting for its neighbour's light: the last one's
 	if (odd) Sacc += (albedo * pst * cloudSampleLight(lastTauL, lastUp, pd, pst, ph, py, mu, pw, ph0, ph1, ph2, ph3, c)) * (pw0 / max(pst, 1e-6));
 	o.S = Sacc;
-	o.T = saturate((T - 0.02) / 0.98);
+	o.T = T; // Preserve the remaining sky transmission instead of remapping it toward opaque.
 	o.dist = wsum > 1e-5 ? dsum / wsum : t0;
 	return o;
 }
