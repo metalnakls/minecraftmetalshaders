@@ -498,17 +498,13 @@ static float3 shadeSkyRadiance2(float3 dir, texture2d<half> lut, sampler s, cons
 		float3 sunLight = f.lightDirWorld.w > 0.5 ? f.sunColor.rgb : float3(0.0);
 		float aureole = (shadeHG(cosA, 0.85) - shadeHG(cosA, 0.6)) * 0.35 * f.atmosphere.z * (1.0 - 0.7 * rain);
 		sky += sunLight * max(aureole, 0.0) * above;
-		float rs = L.sunGeom.y;
-		float ang = acos(clamp(cosA, -1.0, 1.0));
-		float rho = ang / rs;
-		if (rho < 1.3) {
-			float w = 1.5 * pixelAngle / rs;
-			float mu = sqrt(saturate(1.0 - rho * rho));
-			float3 u = float3(0.40, 0.55, 0.70), v = float3(0.25, 0.20, 0.12);
-			float3 I = 1.0 - u * (1.0 - mu) - v * (1.0 - mu) * (1.0 - mu);
-			float edge = smoothstep(1.0 + w, 1.0 - w, rho);
-			sky += sunLight * (160.0 * (1.0 - 0.9 * rain)) * I * edge * above;
-		}
+		// One continuous angular falloff lets the bright center merge into the aureole.
+		// Filter the profile over a pixel while preserving its integrated energy.
+		float rs = max(L.sunGeom.y, 1e-5);
+		float rho2 = max(2.0 * (1.0 - cosA), 0.0) / (rs * rs);
+		float width2 = 1.0 + (pixelAngle * pixelAngle) / (6.0 * rs * rs);
+		float disc = exp2(-rho2 / width2) / width2;
+		sky += sunLight * (48.0 * (1.0 - 0.9 * rain)) * disc * above;
 	}
 	bool procedural = shadeFeature(L, SHADE_FEATURE_STARS);
 	float night = L.night.x;
