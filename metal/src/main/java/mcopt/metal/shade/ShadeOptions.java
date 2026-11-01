@@ -127,7 +127,7 @@ public final class ShadeOptions {
 				"How much flames, glowstone and lava glow.", 0, 300, 100),
 			h("Luz en la mano", "Held light"),
 			pctOf("mcopt.shade.dynLights.strength", "Intensidad", "Strength", "Luz de las antorchas y linternas que llevas o que llevan los mobs.",
-				"Light from torches and lanterns you or mobs hold.", 0, 400, () -> 100, 0.01f),
+				"Light from torches and lanterns you or mobs hold.", 0, 400, () -> 100, 1f),
 			toggle("mcopt.shade.dynLights.hand", "Luz de tu mano", "Hand light", "Lo que tienes en la mano ilumina alrededor.",
 				"What you hold lights up the area.", true),
 			toggle("mcopt.shade.dynLights.others", "Luz de mobs", "Mob and item light", "Mobs, objetos tirados y flechas en llamas también iluminan.",
