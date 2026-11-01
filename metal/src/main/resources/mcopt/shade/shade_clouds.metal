@@ -104,11 +104,12 @@ static inline float4 shadeCloudsDome(float3 dir, constant ShadeLook &L, texture2
 }
 
 
-// Foreground clouds on DH surfaces: use their actual distance, including above the horizon.
+// Foreground clouds on DH surfaces: compare distances from any camera height.
+// A high peak may be behind a cloud even when the viewer is below the cloud base.
 // Near terrain is handled by cloud_over; empty sky already contains its cloud composite.
 static inline float4 shadeCloudsForeground(float3 p, constant ShadeLook &L, constant ShadeResources &R) {
-	float k = 1.0 - smoothstep(0.0, 24.0, L.clouds0.x);
-	if (L.clouds0.w < 0.5 || k <= 0.001) return float4(0.0, 0.0, 0.0, 1.0);
+	float k = 1.0;
+	if (L.clouds0.w < 0.5) return float4(0.0, 0.0, 0.0, 1.0);
 	float4 cp = L.viewProjNoJitter * float4(p, 0.0);
 	if (cp.w <= 1e-6) return float4(0.0, 0.0, 0.0, 1.0);
 	float2 uv = cp.xy / cp.w * 0.5 + 0.5;

@@ -25,13 +25,30 @@ int main(int argc,const char**argv){@autoreleasepool{
  id<MTLRenderCommandEncoder>e=[cb renderCommandEncoderWithDescriptor:rp];uint32_t mode=3;[e setRenderPipelineState:p];[e setFragmentBytes:&mode length:4 atIndex:0];[e setFragmentBuffer:f offset:0 atIndex:16];[e setFragmentBuffer:l offset:0 atIndex:17];[e setFragmentBytes:gpu length:sizeof gpu atIndex:18];[e setFragmentTexture:depth atIndex:0];[e setFragmentTexture:dist atIndex:1];[e setFragmentTexture:hist atIndex:2];[e setFragmentTexture:bits atIndex:3];[e drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];[e endEncoding];[cb commit];[cb waitUntilCompleted];need(cb.status==MTLCommandBufferStatusCompleted,cb.error.description);
  _Float16 result[64];[out getBytes:result bytesPerRow:32 fromRegion:MTLRegionMake2D(0,0,4,4) mipmapLevel:0];float lo=1,hi=0;for(int i=0;i<16;i++){lo=fminf(lo,result[i*4]);hi=fmaxf(hi,result[i*4]);}printf("empty-depth sky range %.4f..%.4f\n",lo,hi);need(hi-lo<.001&&fabs(hi-.2)<.001,@"cloud overlay duplicates sky below the horizon");
  if(argc==3)return 0;
- NSString*probe=@"\nkernel void front(constant ShadeLook& l [[buffer(0)]], constant ShadeResources& r [[buffer(1)]], device float4* o [[buffer(2)]],uint i [[thread_position_in_grid]]){float d=i<2?200:20;float y=(i%2==0?-.01:.01)*d;o[i]=shadeCloudsForeground(float3(0,y,-d),l,r);}\n";
+ NSString*probe=@"\nkernel void front(constant ShadeLook& l [[buffer(0)]], constant ShadeResources& r [[buffer(1)]], device float4* o [[buffer(2)]],uint i [[thread_position_in_grid]]){bool ground=l.clouds0.x>0;float d=i<2?(ground?400:200):20;float y=(i%2==0?-.01:.01)*d;if(ground)y=d*.6;o[i]=shadeCloudsForeground(float3(0,y,-d),l,r);}\n";
  id<MTLLibrary>pl=lib([dir stringByAppendingPathComponent:@"prelude.metal"],probe);id<MTLFunction>fn=[pl newFunctionWithName:@"front"];id<MTLComputePipelineState>cp=[dev newComputePipelineStateWithFunction:fn error:&err];need(cp!=nil,err.description);
  id<MTLArgumentEncoder>ae=[fn newArgumentEncoderWithBufferIndex:1];id<MTLBuffer>args=[dev newBufferWithLength:ae.encodedLength options:0],dst=[dev newBufferWithLength:64 options:0];[ae setArgumentBuffer:args offset:0];[ae setTexture:dist atIndex:9];[ae setTexture:hist atIndex:14];[ae setTexture:bits atIndex:15];
- for(int stable=0;stable<2;stable++)for(int empty=0;empty<2;empty++){
-  look[528/4+3]=stable?3:1;for(int j=0;j<4;j++)codes[j]=empty?4095:1701;[bits replaceRegion:MTLRegionMake2D(0,0,2,2) mipmapLevel:0 withBytes:codes bytesPerRow:4];
+ for(int ground=0;ground<2;ground++)for(int stable=0;stable<2;stable++)for(int empty=0;empty<2;empty++){
+  look[528/4]=ground?128:-10;look[528/4+1]=ground?278:140;
+  for(int j=0;j<4;j++)ds[j]=ground?400:100;[dist replaceRegion:MTLRegionMake2D(0,0,2,2) mipmapLevel:0 withBytes:ds bytesPerRow:8];
+  look[528/4+3]=stable?3:1;for(int j=0;j<4;j++)codes[j]=empty?4095:(ground?2213:1701);[bits replaceRegion:MTLRegionMake2D(0,0,2,2) mipmapLevel:0 withBytes:codes bytesPerRow:4];
   cb=[queue commandBuffer];id<MTLComputeCommandEncoder>ce=[cb computeCommandEncoder];[ce setComputePipelineState:cp];[ce setBuffer:l offset:0 atIndex:0];[ce setBuffer:args offset:0 atIndex:1];[ce setBuffer:dst offset:0 atIndex:2];for(id<MTLTexture>t in @[hist,dist,bits])[ce useResource:t usage:MTLResourceUsageRead];[ce dispatchThreads:MTLSizeMake(4,1,1) threadsPerThreadgroup:MTLSizeMake(4,1,1)];[ce endEncoding];[cb commit];[cb waitUntilCompleted];need(cb.status==MTLCommandBufferStatusCompleted,cb.error.description);
-  float*v=dst.contents;for(int j=0;j<4;j++)need(fabs(v[j]-v[4+j])<1e-6,@"DH continuity across horizon");need(v[11]==1&&v[15]==1,@"near terrain occludes cloud");need(fabs(v[3]-(stable&&empty?1:.5))<.001,@"far terrain cloud and clear-history handling");
+  float*v=dst.contents;for(int j=0;j<4;j++)need(fabs(v[j]-v[4+j])<1e-6,@"DH continuity across horizon");need(v[11]==1&&v[15]==1,@"near terrain occludes cloud");need(fabs(v[3]-(stable&&empty?1:.5))<.001,ground?@"ground view: high mountains erase foreground clouds":@"far terrain cloud and clear-history handling");
  }
- printf("PASS DH above/below horizon, near/far occlusion, stable/classic history, no duplicate sky\n");
+ // Exercise the near-terrain pass's actual depth rejection too, including a clear history pixel,
+ // rather than only checking the DH helper above.
+ look[528/4]=128;look[528/4+1]=278;
+ for(int stable=0;stable<2;stable++)for(int near=0;near<2;near++)for(int empty=0;empty<2;empty++){
+  uint32_t overlayMode=stable?3:1;float z=near?20:200;float*frame=f.contents;
+  float terrainDepth=(frame[128/4+10]*-z+frame[128/4+14])/(frame[128/4+11]*-z+frame[128/4+15]);
+  for(int j=0;j<4;j++){ds[j]=100;codes[j]=empty?4095:1701;}
+  [dist replaceRegion:MTLRegionMake2D(0,0,2,2) mipmapLevel:0 withBytes:ds bytesPerRow:8];
+  [bits replaceRegion:MTLRegionMake2D(0,0,2,2) mipmapLevel:0 withBytes:codes bytesPerRow:4];
+  cb=[queue commandBuffer];clear.depthAttachment.clearDepth=terrainDepth;[[cb renderCommandEncoderWithDescriptor:clear]endEncoding];
+  e=[cb renderCommandEncoderWithDescriptor:rp];[e setRenderPipelineState:p];[e setFragmentBytes:&overlayMode length:4 atIndex:0];[e setFragmentBuffer:f offset:0 atIndex:16];[e setFragmentBuffer:l offset:0 atIndex:17];[e setFragmentBytes:gpu length:sizeof gpu atIndex:18];[e setFragmentTexture:depth atIndex:0];[e setFragmentTexture:dist atIndex:1];[e setFragmentTexture:hist atIndex:2];[e setFragmentTexture:bits atIndex:3];[e drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];[e endEncoding];[cb commit];[cb waitUntilCompleted];need(cb.status==MTLCommandBufferStatusCompleted,cb.error.description);
+  [out getBytes:result bytesPerRow:32 fromRegion:MTLRegionMake2D(0,0,4,4) mipmapLevel:0];
+  float expected=near||(stable&&empty)?.2:.4;
+  for(int j=0;j<16;j++)need(fabs(result[4*j]-expected)<.001,near?@"near terrain must hide clouds":@"clouds must cover terrain behind them from below");
+ }
+ printf("PASS DH and near terrain from ground/elevated views, near/far occlusion, stable/classic history, no duplicate sky\n");
 }return 0;}
