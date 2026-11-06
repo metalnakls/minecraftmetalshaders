@@ -53,15 +53,15 @@ public final class ShadeLook {
 	// columns: elevation, chroma gamma, light multiplier, ambient tint r g b, saturation, contrast a, bloom mix, VL k, mist sigma
 	// (x 1e-3 / block), white balance (mired; positive = warmer image)
 	private static final float[][] KEYS = {
-		{-15, 1.00f, 1.00f, 0.80f, 0.88f, 1.16f, 0.74f, 1.30f, 0.130f, 0.30f, 1.5f, -20},
-		{-9, 1.00f, 1.00f, 0.84f, 0.86f, 1.20f, 0.82f, 1.32f, 0.120f, 0.15f, 2.0f, -25},
-		{-4, 1.00f, 1.00f, 0.86f, 0.84f, 1.22f, 1.10f, 1.34f, 0.110f, 0.05f, 2.5f, -30},
-		{0, 1.30f, 0.85f, 1.04f, 0.93f, 1.03f, 1.20f, 1.36f, 0.100f, 1.00f, 5.0f, 6},
-		{5, 1.22f, 1.00f, 1.02f, 0.95f, 1.00f, 1.18f, 1.38f, 0.090f, 0.85f, 4.0f, 6},
-		{12, 1.12f, 1.00f, 1.01f, 0.97f, 0.99f, 1.14f, 1.40f, 0.085f, 0.55f, 2.5f, 6},
-		{25, 1.04f, 1.00f, 1.00f, 0.99f, 1.01f, 1.02f, 1.40f, 0.080f, 0.32f, 1.2f, 15},
-		{45, 1.00f, 1.00f, 1.00f, 1.00f, 1.00f, 1.04f, 1.40f, 0.075f, 0.22f, 0.6f, 6},
-		{65, 1.00f, 1.00f, 1.00f, 1.00f, 1.00f, 1.05f, 1.42f, 0.075f, 0.18f, 0.5f, 4},
+		{-15, 1.00f, 1.00f, 0.80f, 0.88f, 1.16f, 0.74f, 1.12f, 0.130f, 0.30f, 1.5f, -20},
+		{-9, 1.00f, 1.00f, 0.84f, 0.86f, 1.20f, 0.82f, 1.14f, 0.120f, 0.15f, 2.0f, -25},
+		{-4, 1.00f, 1.00f, 0.86f, 0.84f, 1.22f, 1.10f, 1.16f, 0.110f, 0.05f, 2.5f, -30},
+		{0, 1.30f, 0.85f, 1.04f, 0.93f, 1.03f, 1.20f, 1.18f, 0.100f, 1.00f, 5.0f, 6},
+		{5, 1.22f, 1.00f, 1.02f, 0.95f, 1.00f, 1.18f, 1.20f, 0.090f, 0.85f, 4.0f, 6},
+		{12, 1.12f, 1.00f, 1.01f, 0.97f, 0.99f, 1.14f, 1.22f, 0.085f, 0.55f, 2.5f, 6},
+		{25, 1.04f, 1.00f, 1.00f, 0.99f, 1.01f, 1.02f, 1.22f, 0.080f, 0.32f, 1.2f, 15},
+		{45, 1.00f, 1.00f, 1.00f, 1.00f, 1.00f, 1.04f, 1.22f, 0.075f, 0.22f, 0.6f, 6},
+		{65, 1.00f, 1.00f, 1.00f, 1.00f, 1.00f, 1.05f, 1.24f, 0.075f, 0.18f, 0.5f, 4},
 	};
 	// golden-hour sky gain (sky LUT): elevation, horizon rgb, zenith rgb; linear between rows, 1 outside
 	private static final float[][] SKY_GOLD = {
@@ -91,7 +91,7 @@ public final class ShadeLook {
 	private static final int K_GAMMA = 1, K_LIGHT = 2, K_AMB = 3, K_SAT = 6, K_CONTRAST = 7, K_BLOOM = 8, K_VL = 9, K_MIST = 10, K_WB = 11;
 
 	// ---- look presets (bible §3.6): epic, storybook, natural -------------------------------------------------------------
-	private static final float[] PRESET_GAMMA = {1.0f, 1.15f, 0.9f}, PRESET_SAT = {0.05f, 0.10f, 0.0f}, PRESET_CONTRAST = {1.05f, 0.97f, 0.95f},
+	private static final float[] PRESET_GAMMA = {1.0f, 1.15f, 0.9f}, PRESET_SAT = {0.05f, 0.10f, 0.0f}, PRESET_CONTRAST = {1.02f, 0.97f, 0.95f},
 		PRESET_BLOOM = {1.0f, 1.25f, 0.8f}, PRESET_LAMBDA = {0.55f, 0.40f, 0.70f}, PRESET_INSET = {0.20f, 0.16f, 0.24f}, PRESET_VL = {1.0f, 1.25f, 0.8f},
 		PRESET_SPECTRUM = {0.6f, 0.9f, 0.3f};
 
