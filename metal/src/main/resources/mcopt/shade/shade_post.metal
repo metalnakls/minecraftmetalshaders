@@ -109,6 +109,16 @@ fragment half4 shade_bloom_up(ShadeFsOut in [[stage_in]], texture2d<half> level 
 	return half4(half3(l * p.w.x + u * p.w.y), 1.0h);
 }
 
+// A restrained red/amber fringe in the narrow bloom footprint. Flat fields and bright cores get no halation;
+// cool lights contribute only their red component. Smooth threshold and shoulder avoid a hard halo at exposure changes.
+static inline float3 shadeBloomComposite(float3 scene, float3 blurred, float3 nearBloom, float mixAmount, float halation) {
+	float3 c = mix(scene, blurred, saturate(mixAmount));
+	float fringe = max(nearBloom.r - scene.r, 0.0);
+	float hot = smoothstep(0.75, 3.0, shadeLuma(nearBloom));
+	float glow = halation * hot * fringe / (1.0 + fringe * 0.25);
+	return c + float3(1.0, 0.18, 0.025) * glow;
+}
+
 // p: x 1 / (sum of the bloom weights), y bloom on (0/1), z frame index, w debug view; q: x weight of bloom level 0, y the
 // volumetric light's upsample mode and z its depth tolerance scale (2026-10-09 look development: shadeVlUpsample);
 // v: x volumetric light folded in (0/1, ShadePost.setVolumetric), y its max march distance (blocks), zw the live part of the
@@ -427,10 +437,11 @@ static float3 shadeFinalScene(ShadeFsOut in, texture2d<half> scene, texture2d<ha
 		c = max(lit + add, lo);
 	}
 	if (P.p.y > 0.5) {
-		float3 b = float3(bloom.sample(shadeLinearClamp, in.uv).rgb + bloom0.sample(shadeLinearClamp, in.uv).rgb * half(P.q.x)) * P.p.x;
+		float3 nearBloom = float3(bloom0.sample(shadeLinearClamp, in.uv).rgb);
+		float3 b = (float3(bloom.sample(shadeLinearClamp, in.uv).rgb) + nearBloom * P.q.x) * P.p.x;
 		// fog glow: the haze and the canopy mist both soften what is behind them
 		float m = L.bloom.x + (d > 0.0 ? L.bloom.z * (1.0 - shadeLuma(T) * tv) : L.bloom.z * (0.25 + 0.75 * (1.0 - tv)));
-		c = mix(c, b, saturate(m));
+		c = shadeBloomComposite(c, b, nearBloom, m, L.user2.z);
 	}
 	// Purkinje: dim light (scene luminance, not exposed) shifts toward the rods' cool grey
 	lum = shadeLuma(c) / ex;
