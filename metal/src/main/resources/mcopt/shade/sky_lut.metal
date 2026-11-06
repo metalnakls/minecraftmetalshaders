@@ -19,10 +19,8 @@ vertex ShadeLutOut shade_lut_vs(uint vid [[vertex_id]]) {
 	return out;
 }
 
-fragment half4 shade_lut_fs(ShadeLutOut in [[stage_in]], constant ShadeFrame &f [[buffer(16)]], constant ShadeLook &L [[buffer(17)]]) {
-	float2 uv = (in.position.xy - 0.5) / float2(SHADE_LUT_W - 1, SHADE_LUT_H - 1);
+static inline float3 shadeSkyLutRadiance(float3 dir, constant ShadeFrame &f, constant ShadeLook &L) {
 	float3 transmittance;
-	float3 dir = shadeLutDirection(uv, f);
 	bool art = L.skyGoldH.w > 0.5; // M3 sunset art (mcopt.shade.sunsetArt)
 	float3 sky = shadeSkyRadiance(art ? shadeSunsetStretch(dir, f.sunDirWorld.xyz, f.sunDirWorld.w, f.weather.x) : dir, f, transmittance, art);
 	// M2 art layer: the golden hour's warm horizon and rose upper sky (ShadeLook.skyGold*), strongest toward the sun; baked
@@ -35,14 +33,21 @@ fragment half4 shade_lut_fs(ShadeLutOut in [[stage_in]], constant ShadeFrame &f 
 	// M3: the evening sky's hue toward rose (upper sky, a little mauve) and peach (lower), at the same luminance: the warm
 	// pink-gold evening of the studied packs, our sun, rays and blue top kept (ShadeLook.skyGoldZ.w, 0 by day)
 	float rose = L.skyGoldZ.w;
-	if (rose > 0.0 && dir.y > 0.03) {
+	if (rose > 0.0 && dir.y > 0.0) {
 		float up = smoothstep(0.08, 0.6, dir.y);
 		float3 tint = mix(float3(1.6, 1.0, 0.6), float3(1.6, 0.88, 0.86), up); // gold-peach low, warm rose high (was mauve: read lilac-grey)
 		tint /= dot(tint, float3(0.2126, 0.7152, 0.0722));
 		float l = dot(sky, float3(0.2126, 0.7152, 0.0722));
-		// the gold horizon band stays as it is (smoothstep from 0.03): only the sky above it turns
-		float w = rose * (0.55 + 0.45 * toward) * (1.0 - 0.3 * smoothstep(0.55, 1.0, dir.y)) * smoothstep(0.03, 0.2, dir.y);
+		// Ease from the gold horizon across a broad band instead of a narrow pink stripe.
+		float w = rose * (0.55 + 0.45 * toward) * (1.0 - 0.3 * smoothstep(0.55, 1.0, dir.y)) * smoothstep(0.0, 0.35, dir.y);
 		sky = mix(sky, l * tint, w);
 	}
-	return half4(half3(min(sky, 60000.0)), 1.0h);
+	// The warm gain can turn cyan back toward green; constrain the completed sky grade too.
+	if (art) sky = shadeSunsetHue(sky, f.sunDirWorld.w);
+	return min(sky, 60000.0);
+}
+
+fragment half4 shade_lut_fs(ShadeLutOut in [[stage_in]], constant ShadeFrame &f [[buffer(16)]], constant ShadeLook &L [[buffer(17)]]) {
+	float2 uv = (in.position.xy - 0.5) / float2(SHADE_LUT_W - 1, SHADE_LUT_H - 1);
+	return half4(half3(shadeSkyLutRadiance(shadeLutDirection(uv, f), f, L)), 1.0h);
 }

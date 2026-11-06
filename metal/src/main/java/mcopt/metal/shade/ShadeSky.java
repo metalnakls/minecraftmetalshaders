@@ -49,6 +49,8 @@ public final class ShadeSky {
 	public static final float AMBIENT_DESATURATE = 0.3f;
 	/** Neutral daylight fill; the sky pixels keep their atmospheric colour. */
 	public static final float DAY_AMBIENT_DESATURATE = 0.8f;
+	/** Gentler dusk fill lets the warm direct sun set the colour without blue shadows needing a global warm grade. */
+	public static final float SUNSET_AMBIENT_DESATURATE = 0.65f;
 	/** Exposure: the average scene luminance maps to this; clamped to the range below, adapted over ADAPT_SECONDS. */
 	public static final float KEY = 0.61f, EXPOSURE_MIN = 0.1f, EXPOSURE_MAX = 1.6f, ADAPT_SECONDS = 1.2f;
 	/** How much of a brightness change the eye compensates: 1 = all of it (every scene as bright), 0 = none. */
@@ -193,6 +195,7 @@ public final class ShadeSky {
 				cg -= 0.06f * kc * Math.max(cr, 0f);
 				out[0] = Math.max(lc + cr, 0f); out[1] = Math.max(lc + cg, 0f); out[2] = Math.max(lc + cb, 0f);
 			}
+
 		} else {
 			gh *= 0.55f + 0.45f * h * h * h;
 			out[0] *= 1f + 0.45f * gh; out[1] *= 1f + 0.02f * gh; out[2] *= 1f - 0.28f * gh;
@@ -201,6 +204,18 @@ public final class ShadeSky {
 		out[0] = mix(out[0], l * 0.92f * grey, w) * SKY_BRIGHTNESS;
 		out[1] = mix(out[1], l * 0.96f * grey, w) * SKY_BRIGHTNESS;
 		out[2] = mix(out[2], l * grey, w) * SKY_BRIGHTNESS;
+		if (sunsetArt) {
+			// The RGB scattering approximation can peak in green between the blue sky and warm horizon.
+			// Correct only that atmospheric hue, retaining luminance; never grade material colours here.
+			// Keep this in sync with shade_common.metal's shadeSunsetHue.
+			float transition = (1f - smoothstep(0.32f, 0.50f, s.sunY)) * smoothstep(-0.16f, -0.02f, s.sunY);
+			if (transition > 0f) {
+				float before = luma(out[0], out[1], out[2]);
+				out[1] -= Math.max(out[1] - 0.96f * Math.max(out[0], out[2]), 0f) * transition;
+				float energy = before / Math.max(luma(out[0], out[1], out[2]), 1e-8f);
+				for (int c = 0; c < 3; c++) out[c] *= energy;
+			}
+		}
 	}
 
 	/** M3 sunset art (mcopt.shade.sunsetArt, set every frame by ShadeLook): the azimuth-aware grade of shadeSunsetGrade. */
@@ -302,6 +317,8 @@ public final class ShadeSky {
 		float day = r.sunLight ? Math.clamp((r.lightDir[1] - 0.2f) / 0.5f, 0f, 1f) : 0f;
 		day *= day * (3f - 2f * day);
 		float fillNeutrality = AMBIENT_DESATURATE + (DAY_AMBIENT_DESATURATE - AMBIENT_DESATURATE) * day;
+		float sunset = smoothstep(-0.07f, 0f, s.sunY) * (1f - smoothstep(0.32f, 0.50f, s.sunY)) * (1f - s.rain);
+		fillNeutrality += (SUNSET_AMBIENT_DESATURATE - AMBIENT_DESATURATE) * sunset * (1f - day);
 		desaturate(r.ambientSky, fillNeutrality);
 		desaturate(r.ambientToward, fillNeutrality);
 		desaturate(r.ambientAway, fillNeutrality);
