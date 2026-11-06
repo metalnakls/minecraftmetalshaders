@@ -102,7 +102,7 @@ public class ShadeMslDump {
 		// M3 weather: the puddle/snow noise bake (ShadeWeather.bakeNoise)
 		Files.writeString(out.resolve("weather_noise.metal"), ShadeMsl.post() + "#define SHADE_WX_NOISE_BAKE\n" + mcopt.metal.shade.weather.ShadeWeather.prelude());
 		Files.writeString(out.resolve("vl.metal"), mcopt.metal.shade.vl.VlConfig.source()); // volumetric light (mcvl.m)
-		Files.writeString(out.resolve("dynlight_vis.metal"), "#define SHADE_DL_KERNELS\n" + ShadeMsl.resource("dynlight.metal") + "\n" + ShadeMsl.resource("dynlight_vis.metal")); // M3 dynamic lights: visibility kernel (mcdynlight.m)
+		Files.writeString(out.resolve("dynlight_vis.metal"), mcopt.metal.shade.light.DynLightConfig.source()); // Same library as DynLights.init, including torch colour helpers.
 		Files.writeString(out.resolve("clouds_passes.metal"), mcopt.metal.shade.clouds.CloudConfig.source()); // M3 volumetric clouds (mcclouds.m)
 		// clouds: own fragment (CloudInfo slot from the defines); vanilla's generated vertex stage comes from a dump if given
 		String s4 = MetalShaderRegistry.slotDefines(List.of("CloudInfo", "Projection", "DynamicTransforms", "Fog"));
